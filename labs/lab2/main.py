@@ -1,5 +1,6 @@
 import random
 from time import time_ns
+from collections import namedtuple
 
 import matplotlib.pyplot as plt
 import psutil
@@ -16,19 +17,15 @@ class NQueensState:
         self.queens = queens.copy() if queens else self.random_state()
         self.num_conflicts = self.conflicts()
 
-    def __eq__(self, other):
-        if self is other: return True
-        if other is None: return False
-        if not isinstance(other, NQueensState): return False
-
-        return self.conflicts() == other.conflicts()
-
-    def __ge__(self, other):
+    def __lt__(self, other):
         if self is other: return True
         if other is None: return False
         if not isinstance(other, NQueensState): return False
 
         return self.conflicts() >= other.conflicts()
+
+    def __hash__(self):
+        return hash(tuple(self.queens))
 
     def __str__(self):
         return f'{self.queens} <{self.conflicts()}>'
@@ -42,8 +39,10 @@ class NQueensState:
 
         return queens
 
-    def conflicts(self):
-        return sum([abs(self.queens[j] - self.queens[i]) == j - i
+    def conflicts(self, queens=None):
+        if queens is None: queens = self.queens[:]
+
+        return sum([abs(queens[j] - queens[i]) == j - i
                     for i in range(self.N - 1)
                     for j in range(i + 1, self.N)])
 
@@ -55,6 +54,20 @@ class NQueensState:
                 neighbor = NQueensState(N, queens=self.queens)
                 neighbor.queens[i], neighbor.queens[j] = neighbor.queens[j], neighbor.queens[i]
                 yield neighbor
+
+    def random_neighbor(self, queens=None):
+        if queens is None: queens = self.queens[:]
+
+        N = self.N
+
+        i = random.randint(0, N - 2)
+        j = random.randint(i + 1, N - 1)
+
+        neighbor = NQueensState(N, queens=queens)
+        neighbor.queens[i], neighbor.queens[j] = neighbor.queens[j], neighbor.queens[i]
+        neighbors = [(neighbor, 1)]
+
+        return neighbors
 
     def plot(self, fc='darkslateblue'):
         N = self.N
@@ -130,7 +143,7 @@ class NQueensState:
                     visited_states.add(tuple(neighbor.queens))
                     stack.push((neighbor.queens, current_depth + 1))
 
-            self.queens = current_state
+            self.queens = current_state[:]
             generated_nodes += stack.length() - start_length
 
             if self.conflicts() == 0:
@@ -156,7 +169,9 @@ class NQueensState:
 
         return True
 
-    def heuristic(self, queens):
+    def heuristic(self, queens=None):
+        if queens is None: queens = self.queens[:]
+
         counter = 0
 
         for i in range(self.N - 1):
@@ -171,36 +186,40 @@ class NQueensState:
         return counter
 
     def astar(self, initial_state, heuristic, time_limit, memory_limit):
+        Node = namedtuple('Node', 'state parent cost')
+
         start_time = time_ns()
         process = psutil.Process()
         frontier = PriorityQueue()
-        explored = set()
-        frontier.push(initial_state, heuristic(initial_state))
-        explored.add(tuple(initial_state))
+        explored = dict()
+
+        node = Node(self, None, 0)
+        frontier.push(node, heuristic(queens=initial_state.queens))
+        explored[initial_state] = node
         max_stored, generated_nodes, path_cost = 0, 0, 0
 
         while not frontier.is_empty():
-            current_state = frontier.pop()
+            node = frontier.pop()
             current_time = (time_ns() - start_time) / 1e9
             current_memory = process.memory_info().rss / (1024 ** 2)
-            max_stored = max(max_stored, frontier.length())
 
             if current_time >= time_limit or current_memory >= memory_limit:
                 return None
 
-            for neighbor in self.neighbors():
+            for neighbor, step_cost in self.random_neighbor(queens=node.state.queens):
                 generated_nodes += 1
+                path_cost += node.cost + step_cost
 
-                if tuple(neighbor.queens) not in explored:
-                    explored.add(tuple(neighbor.queens))
-                    path_cost += 1
-                    frontier.push(neighbor.queens,
-                                  path_cost + heuristic(neighbor.queens))
+                if neighbor not in explored or path_cost < explored[neighbor].cost:
+                    child_node = Node(neighbor, node, path_cost)
+                    explored[neighbor] = child_node
+                    frontier.push(child_node, path_cost + heuristic(queens=neighbor.queens))
 
-            self.queens = current_state
+            self.queens = node.state.queens[:]
+            max_stored = max(max_stored, frontier.length())
 
-            if self.conflicts() == 0:
-                return current_state, current_time, current_memory, \
+            if self.conflicts(queens=node.state.queens) == 0:
+                return node.state.queens, current_time, current_memory, \
                     generated_nodes, max_stored
 
         return None
@@ -237,7 +256,7 @@ class NQueensState:
 
 experiments_result = []
 
-for i in range(10):
+for i in range(50):
     state = NQueensState(8)
     # print("Initial state:", state.queens)
     # print("Conflicts:", state.conflicts())
@@ -249,10 +268,10 @@ for i in range(10):
     # experiments_result.append((state.conflicts(), state.queens, 'LDFS', random_depth,
     #                            state.LDFS(state.queens, random_depth, 10, 1024)))
 
-    heuristic = state.heuristic(state.queens)
+    heuristic = state.heuristic()
     print("Heuristic:", heuristic)
     experiments_result.append((state.conflicts(), state.queens, 'A*', heuristic,
-                               state.astar(state.queens, state.heuristic, 10, 1024)))
+                               state.astar(state, state.heuristic, 10, 1024)))
     # print("Final state:", state.queens, '\n')
 
     state.plot()
