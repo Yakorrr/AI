@@ -202,6 +202,7 @@ class NQueensState:
             node = frontier.pop()
             current_time = (time_ns() - start_time) / 1e9
             current_memory = process.memory_info().rss / (1024 ** 2)
+            max_stored = max(max_stored, len(explored))
 
             if current_time >= time_limit or current_memory >= memory_limit:
                 return None
@@ -216,7 +217,7 @@ class NQueensState:
                     frontier.push(child_node, path_cost + heuristic(queens=neighbor.queens))
 
             self.queens = node.state.queens[:]
-            max_stored = max(max_stored, frontier.length())
+            generated_nodes += max_stored
 
             if self.conflicts(queens=node.state.queens) == 0:
                 return node.state.queens, current_time, current_memory, \
@@ -235,7 +236,7 @@ class NQueensState:
             column,
             'Goal state',
             'Time, s',
-            'Memory, Kb',
+            'Memory, Mb',
             'Generated',
             'Max. stored'
         ))
