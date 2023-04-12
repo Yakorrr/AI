@@ -240,6 +240,10 @@ class NQueensState:
             'Max. stored'
         ))
 
+        total_time, avg_time, \
+            total_generated, avg_generated = 0, 0, 0, 0
+        valid_experiments = 0
+
         for i in data:
             temp_list = []
 
@@ -250,8 +254,25 @@ class NQueensState:
             temp_list = ["".join(str(number) for number in elem)
                          if isinstance(elem, list) else elem for elem in temp_list]
 
+            valid_experiments += 1 if i[len(i) - 1] is not None else 0
+
+            try:
+                total_time += temp_list[5] if type(temp_list[5] != str) else 0
+                total_generated += temp_list[7] if type(temp_list[7] != str) else 0
+            except TypeError:
+                pass
+
             print("| {:<10} | {:<10} | {:<13} | {:<10} | {:<9} | {:<12} | {:<11} | {:<12} | {:<10} | {:<11} |"
                   .format(data.index(i) + 1, *temp_list))
+
+        avg_time = total_time / len(data)
+        avg_generated = total_generated / len(data)
+
+        print("\nPath found times:", valid_experiments)
+        print("Total time, s:", total_time)
+        print("Average time, s:", avg_time)
+        print("Total generated:", total_generated)
+        print("Average generated:", avg_generated)
 
 
 experiments_result = []
