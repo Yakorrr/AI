@@ -7,6 +7,7 @@ import psutil
 
 from stack import Stack
 from priority_queue import PriorityQueue
+from queue import Queue
 
 plt.rcParams['figure.figsize'] = (6, 6)
 
@@ -69,20 +70,21 @@ class NQueensState:
 
         return neighbors
 
-    def plot(self, fc='darkslateblue'):
+    def plot(self, fc='black'):
         N = self.N
         figsize = plt.rcParams['figure.figsize']
         figure = plt.figure(figsize=(6, 6))
         ax = figure.add_subplot(1, 1, 1)
 
-        border = plt.Rectangle((0, -N), N, N, ec=fc, fc='w', alpha=0.35)
+        border = plt.Rectangle((0, -N), N, N, ec=fc, fc='w', alpha=0.3)
         ax.add_patch(border)
 
         # draw chess board
         for i in range(N):
             for j in range(N):
-                alpha = 0.35 if (i + j) % 2 == 0 else 0.1
-                cell = plt.Rectangle((i, -j - 1), 1, 1, fc=fc, alpha=alpha)
+                # alpha = 0.5 if (i + j) % 2 == 0 else 0.2
+                fc = 'white' if (i + j) % 2 == 0 else 'black'
+                cell = plt.Rectangle((i, -j - 1), 1, 1, fc=fc, alpha=0.3)
                 ax.add_patch(cell)
 
         # place queens on chess board
@@ -92,7 +94,7 @@ class NQueensState:
             x = position - 0.5
             fs = max(1, figsize[0] * 50 // N)
             y -= 1
-            ax.text(x, y, '♛', color='k', fontsize=fs, ha='center', va='center')
+            ax.text(x, y, '♔', color='k', fontsize=fs, ha='center', va='center')
 
         ax.axis('square')
         ax.axis('off')
@@ -109,9 +111,9 @@ class NQueensState:
                     x1, x2 = row_i - 0.5, row_j - 0.5
                     y1, y2 = -i - 0.5, -j - 0.5
 
-                    line = plt.Line2D((x1, x2), (y1, y2), lw=3, ls='-', color='red', alpha=0.5)
-                    plt.plot(x1, y1, lw=3, ls='', marker='o', color='red', alpha=0.5)
-                    plt.plot(x2, y2, lw=3, ls='', marker='o', color='red', alpha=0.5)
+                    line = plt.Line2D((x1, x2), (y1, y2), lw=3, ls='-', color='purple', alpha=0.8)
+                    plt.plot(x1, y1, lw=3, ls='', marker='o', color='purple', alpha=0.8)
+                    plt.plot(x2, y2, lw=3, ls='', marker='o', color='purple', alpha=0.8)
                     ax.add_line(line)
 
         plt.show()
@@ -148,6 +150,40 @@ class NQueensState:
 
             if self.conflicts() == 0:
                 return current_state, current_time, current_memory, \
+                    generated_nodes, max_nodes
+
+        return None
+
+    def BFS(self, initial_state, time_limit, memory_limit):
+        start_time = time_ns()
+        explored = set()
+        queue = Queue()
+        queue.push(initial_state)
+
+        process = psutil.Process()
+        max_nodes, generated_nodes = 0, 0
+
+        while not queue.is_empty():
+            node = queue.pop()
+            current_time = (time_ns() - start_time) / 1e9
+            current_memory = process.memory_info().rss / (1024 ** 2)
+            max_nodes = max(max_nodes, queue.length())
+            start_length = queue.length()
+
+            explored.add(tuple(node))
+
+            if current_time >= time_limit or current_memory >= memory_limit:
+                return None
+
+            for neighbor in self.neighbors():
+                if neighbor not in explored:
+                    queue.push(neighbor.queens)
+
+            self.queens = node[:]
+            generated_nodes += queue.length() - start_length
+
+            if self.conflicts() == 0:
+                return node, current_time, current_memory, \
                     generated_nodes, max_nodes
 
         return None
@@ -227,16 +263,14 @@ class NQueensState:
 
     @staticmethod
     def print_results(data, column=''):
-        print("| {:<10} | {:<10} | {:<12} | {:<10} | {:<9} | {:<12} | {:<11} | {:<12} | {:<10} | {:<10} |"
+        print("| {:<10} | {:<12} | {:<10} | {:<12} | {:<11} | {:<12} | {:<10} | {:<10} |"
         .format(
             'Iteration',
-            'Conflicts',
             'Initial state',
             'Algorithm',
-            column,
             'Goal state',
-            'Time, s',
-            'Memory, Mb',
+            'Time',
+            'Memory',
             'Generated',
             'Max. stored'
         ))
@@ -258,22 +292,22 @@ class NQueensState:
             valid_experiments += 1 if i[len(i) - 1] is not None else 0
 
             try:
-                total_time += temp_list[5] if type(temp_list[5] != str) else 0
-                total_generated += temp_list[7] if type(temp_list[7] != str) else 0
+                total_time += temp_list[3] if type(temp_list[3] != str) else 0
+                total_generated += temp_list[5] if type(temp_list[5] != str) else 0
             except TypeError:
                 pass
 
-            print("| {:<10} | {:<10} | {:<13} | {:<10} | {:<9} | {:<12} | {:<11} | {:<12} | {:<10} | {:<11} |"
+            print("| {:<10} | {:<13} | {:<10} | {:<12} | {:<11} | {:<12} | {:<10} | {:<11} |"
                   .format(data.index(i) + 1, *temp_list))
 
         avg_time = total_time / len(data)
         avg_generated = total_generated / len(data)
 
         print("\nPath found times:", valid_experiments)
-        print("Total time, s:", total_time)
-        print("Average time, s:", avg_time)
+        print("Total time:", total_time)
+        print("Average time:", avg_time)
         print("Total generated:", total_generated)
-        print("Average generated:", avg_generated)
+        # print("Average generated:", avg_generated)
 
 
 experiments_result = []
@@ -290,10 +324,13 @@ for i in range(50):
     # experiments_result.append((state.conflicts(), state.queens, 'LDFS', random_depth,
     #                            state.LDFS(state.queens, random_depth, 10, 1024)))
 
+    # random_depth = random.randint(2, 20)
+    # print("Random depth:", random_depth)
+    # experiments_result.append((state.queens, 'BFS', state.BFS(state.queens, 10, 1024)))
+
     heuristic = state.heuristic()
     print("Heuristic:", heuristic)
-    experiments_result.append((state.conflicts(), state.queens, 'A*', heuristic,
-                               state.astar(state, state.heuristic, 10, 1024)))
+    experiments_result.append((state.queens, 'A*', state.astar(state, state.heuristic, 10, 1024)))
     # print("Final state:", state.queens, '\n')
 
     state.plot()
