@@ -42,12 +42,10 @@ class GridWorld:
                 if current_width < self.width - 1:
                     temp_side = random.randint(i, min(current_height - 1, self.height - 1))
                     corridors_coords.append((temp_side, current_width))
-                    # self.grid[temp_side][min(current_width, self.width - 1)] = "||||"
 
                 if current_height < self.height - 1:
                     temp_bottom = random.randint(j, min(current_width - 1, self.width - 1))
                     corridors_coords.append((current_height, temp_bottom))
-                    # self.grid[min(current_height, self.height - 1)][temp_bottom] = "||||"
 
                 current_width += self.room_width
 
@@ -89,6 +87,15 @@ class GridWorld:
 
         return bombs_coords
 
+    def count_states(self):
+        states = 0
 
-world = GridWorld(22, 22, 10)
+        for i in self.grid:
+            for j in i:
+                if j != '####': states += 1
+
+        return states
+
+
+world = GridWorld(10, 10, 5)
 world.print_world()
