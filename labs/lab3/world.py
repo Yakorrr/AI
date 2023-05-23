@@ -31,7 +31,12 @@ class GridWorld:
         return [[0 for _ in range(self.width)] for _ in range(self.height)]
 
     def random_coordinates(self):
-        return random.randint(0, self.width - 1), random.randint(0, self.height - 1)
+        x, y = random.randint(0, self.width - 1), random.randint(0, self.height - 1)
+
+        while self.grid[x][y] == -50 or self.grid[x][y] == "####":
+            x, y = random.randint(0, self.width - 1), random.randint(0, self.height - 1)
+
+        return x, y
 
     def place_corridors(self):
         corridors_coords = []
@@ -79,7 +84,7 @@ class GridWorld:
         for i in range(amount):
             x, y = self.random_coordinates()
 
-            while self.grid[x][y] == -50 or self.grid[x][y] == "####" or (x, y) in self.corridors:
+            while (x, y) in self.corridors:
                 x, y = self.random_coordinates()
 
             bombs_coords.append((x, y))
@@ -95,7 +100,3 @@ class GridWorld:
                 if j != '####': states += 1
 
         return states
-
-
-world = GridWorld(10, 10, 5)
-world.print_world()
