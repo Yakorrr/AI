@@ -1,39 +1,51 @@
 import random
+from enum import Enum
+
+
+class Objects(Enum):
+    NOTHING = 0.0
+    GOAL = 100.0
+    BOMB = -50.0
+    OBSTACLE = -100
 
 
 class GridWorld:
-    def __init__(self, width, height, bombs):
+    def __init__(self, width, height, bombs, rewards):
         self.width = width
         self.height = height
         self.room_width = self.room_height = 5
 
-        self.grid = self.fill_grid()
+        self.grid, self.current_grid, self.last_grid = self.fill_grids()
+
         self.corridors = self.place_corridors()
         self.place_walls()
-        self.bombs_coordinates = self.place_bombs(bombs)
-
-        self.slip_chance = 0.1
-        self.probability = 1 - self.slip_chance
-        self.penalty = 0.8
-        self.reward = -1
+        self.bombs_coordinates = self.place_item(bombs, Objects.BOMB)
+        self.rewards_coordinates = self.place_item(rewards, Objects.GOAL)
 
     def __str__(self):
         return f'GridWorld {self.width}x{self.height}'
 
     def print_world(self):
-        for row in self.grid:
+        for row in self.current_grid:
             for elem in row:
-                print("{:>10}".format(elem), end='')
+                if elem == Objects.OBSTACLE.value:
+                    print("{:>10}".format("####"), end='')
+                else:
+                    print("{:>10.2f}".format(elem), end='')
 
             print()
 
-    def fill_grid(self):
-        return [[0 for _ in range(self.width)] for _ in range(self.height)]
+        print()
+
+    def fill_grids(self):
+        return [[Objects.NOTHING for _ in range(self.width)] for _ in range(self.height)], \
+            [[Objects.NOTHING.value for _ in range(self.width)] for _ in range(self.height)], \
+            [[Objects.NOTHING.value for _ in range(self.width)] for _ in range(self.height)]
 
     def random_coordinates(self):
         x, y = random.randint(0, self.width - 1), random.randint(0, self.height - 1)
 
-        while self.grid[x][y] == -50 or self.grid[x][y] == "####":
+        while self.grid[x][y] != Objects.NOTHING or self.grid[x][y] == Objects.OBSTACLE:
             x, y = random.randint(0, self.width - 1), random.randint(0, self.height - 1)
 
         return x, y
@@ -65,38 +77,35 @@ class GridWorld:
         while bottom < self.width:
             for horizontal in range(0, self.width):
                 if bottom < self.width and (bottom - 1, horizontal) not in self.corridors:
-                    self.grid[min(bottom - 1, self.width - 1)][horizontal] = "####"
+                    self.grid[min(bottom - 1, self.width - 1)][horizontal] = Objects.OBSTACLE
+                    self.current_grid[min(bottom - 1, self.width - 1)][horizontal] = Objects.OBSTACLE.value
+                    self.last_grid[min(bottom - 1, self.width - 1)][horizontal] = Objects.OBSTACLE.value
 
             bottom += self.room_width
 
         while side < self.height:
             for vertical in range(0, self.height):
                 if (vertical, side - 1) not in self.corridors:
-                    self.grid[vertical][min(side - 1, self.height - 1)] = "####"
+                    self.grid[vertical][min(side - 1, self.height - 1)] = Objects.OBSTACLE
+                    self.current_grid[vertical][min(side - 1, self.height - 1)] = Objects.OBSTACLE.value
+                    self.last_grid[vertical][min(side - 1, self.height - 1)] = Objects.OBSTACLE.value
 
             side += self.room_height
 
         return None
 
-    def place_bombs(self, amount):
-        bombs_coords = []
+    def place_item(self, amount, item):
+        coords = []
 
-        for i in range(amount):
+        for _ in range(amount):
             x, y = self.random_coordinates()
 
             while (x, y) in self.corridors:
                 x, y = self.random_coordinates()
 
-            bombs_coords.append((x, y))
-            self.grid[x][y] = -50
+            coords.append((x, y))
+            self.grid[x][y] = item
+            self.current_grid[x][y] = item.value
+            self.last_grid[x][y] = item.value
 
-        return bombs_coords
-
-    def count_states(self):
-        states = 0
-
-        for i in self.grid:
-            for j in i:
-                if j != '####': states += 1
-
-        return states
+        return coords
