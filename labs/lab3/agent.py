@@ -13,7 +13,7 @@ class RandomAgent:
         self.temp_states = PriorityQueue()
         self.way = queue.Queue()
 
-        self.slip_chance = 0.3
+        self.slip_chance = 0.1
         self.probability = 1.0 - self.slip_chance
         self.penalty = 1.0
         self.reward = -1.0
@@ -68,7 +68,7 @@ class RandomAgent:
         while not self.way.empty():
             elements.append(self.way.get())
 
-        print(tabulate(elements, headers=['Value', 'Current x', 'Current y'], tablefmt='fancy_grid',
+        print(tabulate(elements, headers=['Value', 'Current x', 'Current y'], tablefmt='rounded_grid',
                        stralign='center', numalign='center', floatfmt='.2f'))
 
     def find_solution(self):
@@ -98,3 +98,27 @@ class RandomAgent:
                 self.temp_states.pop()
 
         self.print_path()
+
+    @staticmethod
+    def print_probabilities(array):
+        row = [[key] + value for key, value in array.items()]
+
+        print(tabulate(row, headers=['Slip chance', 'Reward 1', 'Reward 2', 'Reward 3', 'Reward 4'],
+                       tablefmt='rounded_grid', stralign='center', numalign='center', floatfmt='.2f'))
+
+    def change_probability(self):
+        self.slip_chance = 0
+        self.probability = 1 - self.slip_chance
+
+        coords = [self.world.random_coordinates() for _ in range(4)]
+        output = dict()
+
+        for i in range(11):
+            self.value_iteration(100)
+
+            output[self.slip_chance] = [self.world.current_grid[elem[0]][elem[1]] for elem in coords]
+
+            self.slip_chance += 0.1
+            self.probability = 1 - self.slip_chance
+
+        self.print_probabilities(output)

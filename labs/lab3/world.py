@@ -19,7 +19,7 @@ class GridWorld:
 
         self.corridors = self.place_corridors()
         self.place_walls()
-        # self.bombs_coordinates = self.place_item(bombs, Objects.BOMB)
+        self.bombs_coordinates = self.place_item(bombs, Objects.BOMB)
         self.rewards_coordinates = self.place_item(rewards, Objects.GOAL)
 
     def __str__(self):
@@ -39,8 +39,8 @@ class GridWorld:
 
     def fill_grids(self):
         return [[Objects.NOTHING for _ in range(self.width)] for _ in range(self.height)], \
-            [[Objects.NOTHING.value for _ in range(self.width)] for _ in range(self.height)], \
-            [[Objects.NOTHING.value for _ in range(self.width)] for _ in range(self.height)]
+               [[Objects.NOTHING.value for _ in range(self.width)] for _ in range(self.height)], \
+               [[Objects.NOTHING.value for _ in range(self.width)] for _ in range(self.height)]
 
     def random_coordinates(self):
         x, y = random.randint(0, self.width - 1), random.randint(0, self.height - 1)

@@ -10,5 +10,5 @@ if __name__ == '__main__':
     agent.value_iteration(100)
     world.print_world()
 
-    print("Start coordinates:", agent.start_location)
     agent.find_solution()
+    agent.change_probability()
