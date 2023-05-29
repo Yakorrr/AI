@@ -1,14 +1,14 @@
 from world import GridWorld
 from agent import RandomAgent
 
-world = GridWorld(10, 10, 3, 2)
-agent = RandomAgent(world)
+if __name__ == '__main__':
+    world = GridWorld(25, 25, 10, 10)
+    agent = RandomAgent(world)
 
-world.print_world()
-# print(world.current_grid == world.last_grid)
-# print("Start coords:", agent.start_location)
+    world.print_world()
 
-agent.value_iteration(10)
-world.print_world()
+    agent.value_iteration(100)
+    world.print_world()
 
-# agent.find_solution()
+    print("Start coordinates:", agent.start_location)
+    agent.find_solution()

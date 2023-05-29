@@ -19,7 +19,7 @@ class GridWorld:
 
         self.corridors = self.place_corridors()
         self.place_walls()
-        self.bombs_coordinates = self.place_item(bombs, Objects.BOMB)
+        # self.bombs_coordinates = self.place_item(bombs, Objects.BOMB)
         self.rewards_coordinates = self.place_item(rewards, Objects.GOAL)
 
     def __str__(self):
