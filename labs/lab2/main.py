@@ -47,12 +47,14 @@ class NQueensState:
                     for i in range(self.N - 1)
                     for j in range(i + 1, self.N)])
 
-    def neighbors(self):
+    def neighbors(self, queens=None):
+        if queens is None: queens = self.queens[:]
+
         N = self.N
 
         for i in range(N - 1):
             for j in range(i + 1, N):
-                neighbor = NQueensState(N, queens=self.queens)
+                neighbor = NQueensState(N, queens=queens)
                 neighbor.queens[i], neighbor.queens[j] = neighbor.queens[j], neighbor.queens[i]
                 yield neighbor
 
@@ -70,21 +72,20 @@ class NQueensState:
 
         return neighbors
 
-    def plot(self, fc='black'):
+    def plot(self, fc='darkgoldenrod', line_color='seagreen', line_alpha=0.8):
         N = self.N
         figsize = plt.rcParams['figure.figsize']
         figure = plt.figure(figsize=(6, 6))
         ax = figure.add_subplot(1, 1, 1)
 
-        border = plt.Rectangle((0, -N), N, N, ec=fc, fc='w', alpha=0.3)
+        border = plt.Rectangle((0, -N), N, N, ec=fc, fc='w', alpha=0.35)
         ax.add_patch(border)
 
         # draw chess board
         for i in range(N):
             for j in range(N):
-                # alpha = 0.5 if (i + j) % 2 == 0 else 0.2
-                fc = 'white' if (i + j) % 2 == 0 else 'black'
-                cell = plt.Rectangle((i, -j - 1), 1, 1, fc=fc, alpha=0.3)
+                alpha = 0.35 if (i + j) % 2 == 0 else 0.1
+                cell = plt.Rectangle((i, -j - 1), 1, 1, fc=fc, alpha=alpha)
                 ax.add_patch(cell)
 
         # place queens on chess board
@@ -94,7 +95,7 @@ class NQueensState:
             x = position - 0.5
             fs = max(1, figsize[0] * 50 // N)
             y -= 1
-            ax.text(x, y, '♔', color='k', fontsize=fs, ha='center', va='center')
+            ax.text(x, y, '♛', color='k', fontsize=fs, ha='center', va='center')
 
         ax.axis('square')
         ax.axis('off')
@@ -111,9 +112,9 @@ class NQueensState:
                     x1, x2 = row_i - 0.5, row_j - 0.5
                     y1, y2 = -i - 0.5, -j - 0.5
 
-                    line = plt.Line2D((x1, x2), (y1, y2), lw=3, ls='-', color='purple', alpha=0.8)
-                    plt.plot(x1, y1, lw=3, ls='', marker='o', color='purple', alpha=0.8)
-                    plt.plot(x2, y2, lw=3, ls='', marker='o', color='purple', alpha=0.8)
+                    line = plt.Line2D((x1, x2), (y1, y2), lw=3, ls='-', color=line_color, alpha=line_alpha)
+                    plt.plot(x1, y1, lw=3, ls='', marker='o', color=line_color, alpha=line_alpha)
+                    plt.plot(x2, y2, lw=3, ls='', marker='o', color=line_color, alpha=line_alpha)
                     ax.add_line(line)
 
         plt.show()
@@ -261,6 +262,69 @@ class NQueensState:
 
         return None
 
+    def recursive_rbfs(self, node, f_limit, path_cost, Node, heuristic, start_time, process,
+                       generated_nodes, max_stored, time_limit, memory_limit):
+        successors = []
+
+        current_time = (time_ns() - start_time) / 1e9
+        current_memory = process.memory_info().rss / (1024 ** 2)
+
+        if current_time >= time_limit or current_memory >= memory_limit:
+            return None, current_time, current_memory, \
+                generated_nodes, max_stored
+
+        if self.conflicts() == 0:
+            return node.state.queens, current_time, current_memory, \
+                generated_nodes, max_stored
+
+        for neighbor in self.neighbors(queens=node.state.queens):
+            generated_nodes += 1
+
+            child_node = Node(neighbor, node, path_cost)
+            successors.append((child_node, max(path_cost + heuristic(queens=neighbor.queens), f_limit)))
+
+        if not successors:
+            return None, current_time, current_memory, \
+                generated_nodes, max_stored
+
+        while len(successors):
+            successors.sort(key=lambda x: x[1])
+            best_node, best_f = successors[0]
+            self.queens = best_node.state.queens[:]
+
+            if best_f > f_limit:
+                return self.queens, current_time, current_memory, \
+                    generated_nodes, max_stored
+
+            alternative_f = successors[1][1]
+            result, current_time, current_memory, generated_nodes, max_stored = \
+                self.recursive_rbfs(best_node, min(f_limit, alternative_f), path_cost + 1,
+                                    Node, heuristic, start_time, process, generated_nodes, max_stored,
+                                    time_limit, memory_limit)
+
+            max_stored = max(max_stored, len(successors))
+
+            if result is not None:
+                return result, current_time, current_memory, \
+                    generated_nodes, max_stored
+
+        return None, current_time, current_memory, \
+            generated_nodes, max_stored
+
+    def rbfs(self, initial_state, heuristic, time_limit, memory_limit):
+        Node = namedtuple('Node', 'state parent cost')
+
+        start_time = time_ns()
+        process = psutil.Process()
+
+        node = Node(initial_state, None, 0)
+
+        result, current_time, current_memory, generated_nodes, max_stored = \
+            self.recursive_rbfs(node, self.heuristic(), 0, Node, heuristic,
+                                start_time, process, 0, 0, time_limit, memory_limit)
+
+        return result, current_time, current_memory, generated_nodes, max_stored
+
     @staticmethod
     def print_results(data, column=''):
         print("| {:<10} | {:<12} | {:<10} | {:<12} | {:<11} | {:<12} | {:<10} | {:<10} |"
@@ -328,12 +392,16 @@ for i in range(50):
     # print("Random depth:", random_depth)
     # experiments_result.append((state.queens, 'BFS', state.BFS(state.queens, 10, 1024)))
 
+    # heuristic = state.heuristic()
+    # print("Heuristic:", heuristic)
+    # experiments_result.append((state.queens, 'A*', state.astar(state, state.heuristic, 10, 1024)))
+
     heuristic = state.heuristic()
     print("Heuristic:", heuristic)
-    experiments_result.append((state.queens, 'A*', state.astar(state, state.heuristic, 10, 1024)))
-    # print("Final state:", state.queens, '\n')
+    experiments_result.append((state.queens, 'RBFS', state.rbfs(state, state.heuristic, 10, 1024)))
 
     state.plot()
 
 # NQueensState.print_results(experiments_result, column='Depth')
-NQueensState.print_results(experiments_result, column='Heuristic')
+# NQueensState.print_results(experiments_result, column='Heuristic')
+NQueensState.print_results(experiments_result, column='Conflicts')
