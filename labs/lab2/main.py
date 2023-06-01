@@ -374,34 +374,34 @@ class NQueensState:
         # print("Average generated:", avg_generated)
 
 
-experiments_result = []
+if __name__ == '__main__':
+    experiments_result = []
 
-for i in range(50):
-    state = NQueensState(8)
-    # print("Initial state:", state.queens)
-    # print("Conflicts:", state.conflicts())
+    for i in range(50):
+        state = NQueensState(8)
+        # print("Initial state:", state.queens)
+        # print("Conflicts:", state.conflicts())
 
-    state.plot()
+        state.plot()
 
-    # random_depth = random.randint(2, 20)
-    # print("Random depth:", random_depth)
-    # experiments_result.append((state.conflicts(), state.queens, 'LDFS', random_depth,
-    #                            state.LDFS(state.queens, random_depth, 10, 1024)))
+        # random_depth = random.randint(2, 20)
+        # print("Random depth:", random_depth)
+        # experiments_result.append((state.queens, 'LDFS', state.LDFS(state.queens, random_depth, 10, 1024)))
 
-    # random_depth = random.randint(2, 20)
-    # print("Random depth:", random_depth)
-    # experiments_result.append((state.queens, 'BFS', state.BFS(state.queens, 10, 1024)))
+        # random_depth = random.randint(2, 20)
+        # print("Random depth:", random_depth)
+        # experiments_result.append((state.queens, 'BFS', state.BFS(state.queens, 10, 1024)))
 
-    # heuristic = state.heuristic()
-    # print("Heuristic:", heuristic)
-    # experiments_result.append((state.queens, 'A*', state.astar(state, state.heuristic, 10, 1024)))
+        # heuristic = state.heuristic()
+        # print("Heuristic:", heuristic)
+        # experiments_result.append((state.queens, 'A*', state.astar(state, state.heuristic, 10, 1024)))
 
-    heuristic = state.heuristic()
-    print("Heuristic:", heuristic)
-    experiments_result.append((state.queens, 'RBFS', state.rbfs(state, state.heuristic, 10, 1024)))
+        heuristic = state.heuristic()
+        print("Heuristic:", heuristic)
+        experiments_result.append((state.queens, 'RBFS', state.rbfs(state, state.heuristic, 10, 1024)))
 
-    state.plot()
+        state.plot()
 
-# NQueensState.print_results(experiments_result, column='Depth')
-# NQueensState.print_results(experiments_result, column='Heuristic')
-NQueensState.print_results(experiments_result, column='Conflicts')
+    # NQueensState.print_results(experiments_result, column='Depth')
+    # NQueensState.print_results(experiments_result, column='Heuristic')
+    NQueensState.print_results(experiments_result, column='Conflicts')
