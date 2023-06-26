@@ -1,6 +1,5 @@
 import math
 import random
-import time
 from collections import namedtuple
 from time import time_ns
 
@@ -114,68 +113,6 @@ class NPuzzleState:
         plt.show()
 
     @staticmethod
-    def timed(f, *args, **kwargs):
-        start_time = time.time()
-        sol = f(*args, **kwargs)
-        execution_time = time.time() - start_time
-
-        return execution_time, sol
-
-    @staticmethod
-    def print_solution(start_state, path):
-        if not isinstance(path, list):
-            print("No solution found!")
-            return
-
-        print(start_state)
-
-        for state, action in path:
-            print("\n {} \n".format(action))
-            print(state)
-
-    @staticmethod
-    def show_solution(start_state, path, ncols=5, fs=18):
-        if not isinstance(path, list):
-            print("No solution found!")
-            return
-
-        N = len(path) + 1
-        nrows = int(math.ceil(N / ncols))
-
-        fig, axes = plt.subplots(nrows, ncols, figsize=(3 * ncols, 3 * nrows))
-
-        if nrows > 1:
-            start_state.plot(axes[0][0], 'start', fs)
-
-            for i, (state, action) in enumerate(path):
-                state.plot(axes[(i + 1) // ncols][(i + 1) % ncols], action, fs)
-
-            for i in range(N, nrows * ncols):
-                axes[nrows - 1][i % ncols].axis('off')
-
-        else:
-            start_state.plot(axes[0], 'start', fs)
-
-            for i, (state, action) in enumerate(path):
-                state.plot(axes[i + 1], action, fs)
-
-            for i in range(N, ncols):
-                axes[i].axis('off')
-
-        # plt.show()
-
-    @staticmethod
-    def solution(node):
-        path = []
-
-        while node.parent is not None:
-            path = [(node.state, node.action)] + path
-            node = node.parent
-
-        print(path)
-        return path
-
-    @staticmethod
     def manhattan_distance(tile, state1, state2):
         i = state1.tiles.index(tile)
         j = state2.tiles.index(tile)
@@ -222,7 +159,7 @@ class NPuzzleState:
             self.tiles = tuple(node.state.tiles[:])
 
             if node.state == goal_state:
-                return node.state, current_time, current_memory, \
+                return node.state.tiles, current_time, current_memory, \
                     num_generated, max_nodes
 
         return None, current_time, current_memory, \
@@ -236,27 +173,20 @@ class NPuzzleState:
             temp_row = []
 
             for elem in experiment:
-                if isinstance(elem, list):
-                    temp_row.append("".join(str(number) for number in elem))
-                else:
-                    if isinstance(elem, tuple):
-                        if None not in elem:
-                            temp_row.extend(elem)
-                        else:
-                            temp_row.extend(['-----' for _ in range(len(elem))])
-                    else:
-                        temp_row.append(elem)
+                temp_row.extend(elem) if isinstance(elem, tuple) and any(
+                    isinstance(el, tuple) for el in elem) else temp_row.extend(
+                    ['-----' for _ in range(len(elem))]) if isinstance(
+                    elem, tuple) and None in elem else temp_row.append(
+                    elem) if isinstance(elem, tuple) else temp_row.append(elem)
 
-                temp_row.append("".join(str(number) for number in elem)) if isinstance(elem, list) else (
-                    temp_row.extend(elem) if isinstance(elem, tuple) and None not in elem else temp_row.extend(
-                        ['-----' for _ in range(len(elem))]) if isinstance(elem, tuple) else temp_row.append(elem))
+            temp_row = ["".join(str(number) for number in elem)
+                        if isinstance(elem, tuple) else elem for elem in temp_row]
 
-            print(temp_row)
+            rows.append((data.index(experiment) + 1, *temp_row))
 
-            rows.append((data.index(experiment), *temp_row))
-
-        print(tabulate(rows, tablefmt='rounded_grid',
-                       stralign='center', numalign='center'))
+        print(tabulate(rows, headers=['Iteration', 'Initial state', 'Algorithm', 'Goal state',
+                                      'Time', 'Memory', 'Generated', 'Max. stored'],
+                       tablefmt='rounded_grid', stralign='center', numalign='center'))
 
 
 def experiment_series(number):
@@ -269,26 +199,23 @@ def experiment_series(number):
     goal_state = NPuzzleState(8, tiles=goal_state_tiles)
 
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-    print("GOAL STATE:")
+    print(" GOAL STATE: ")
     print(goal_state)
     print("=======================================")
 
-    for _ in range(number):
+    for i in range(number):
         state = NPuzzleState(8)
         state.plot()
 
-        print("Start state:")
+        print("%s. Start state:" % (i + 1))
         print(state)
         print("=======================================")
 
-        experiment_result.append((list(state.tiles), "BFS", state.BFS(state, goal_state, 10, 1024)))
+        experiment_result.append((state.tiles, "BFS", state.BFS(state, goal_state, 10, 1024)))
 
-        state.plot(title="Final state")
+        state.plot(title="Goal state")
 
     NPuzzleState.print_results(experiment_result)
-
-    # for i in experiment_result:
-    #     print(i)
 
 
 if __name__ == '__main__':
