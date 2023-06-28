@@ -119,7 +119,7 @@ class SearchAgent(Agent):
 
 class PositionSearchProblem(search.SearchProblem):
   """
-  A search problem defines the state space, start state, goal test,
+  A search problem defines the state space, start state, goal mp,
   successor function and cost function.  This search problem can be 
   used to find paths to a particular point on the pacman board.
   
@@ -455,7 +455,7 @@ class AnyFoodSearchProblem(PositionSearchProblem):
     A search problem for finding a path to any food.
     
     This search problem is just like the PositionSearchProblem, but
-    has a different goal test, which you need to fill in below.  The
+    has a different goal mp, which you need to fill in below.  The
     state space and successor function do not need to be changed.
     
     The class definition above, AnyFoodSearchProblem(PositionSearchProblem),
@@ -478,7 +478,7 @@ class AnyFoodSearchProblem(PositionSearchProblem):
     
   def isGoalState(self, state):
     """
-    The state is Pacman's position. Fill this in with a goal test
+    The state is Pacman's position. Fill this in with a goal mp
     that will complete the problem definition.
     """
     x,y = state

@@ -87,15 +87,15 @@ function onLoad(assignmentId, ownerName, version) {
     'Do not make changes to files other than <code>submission.py</code>.'));
 
   header.append($('<p>').append(
-    'Your code will be evaluated on two types of test cases, <b>basic</b> and <b>hidden</b>, which you can see in <code>grader.py</code>. ' +
+    'Your code will be evaluated on two types of mp cases, <b>basic</b> and <b>hidden</b>, which you can see in <code>grader.py</code>. ' +
     'Basic tests, which are fully provided to you, do not stress your code with large inputs or tricky corner cases. ' +
     'Hidden tests are more complex and do stress your code.  The inputs of hidden tests are provided in <code>grader.py</code>, but the correct outputs are not. ' +
     'To run the tests, you will need to have <code>graderUtil.py</code> in the same directory as your code and <code>grader.py</code>. ' +
     'Then, you can run all the tests by typing <pre>python grader.py</pre> ' +
     'This will tell you only whether you passed the basic tests. ' +
     'On the hidden tests, the script will alert you if your code takes too long or crashes, but does not say whether you got the correct output. ',
-    'You can also run a single test (e.g., <code>3a-0-basic</code>) by typing <pre>python grader.py 3a-0-basic</pre>',
-    'We strongly encourage you to read and understand the test cases, create your own test cases, and not just blindly run <code>grader.py</code>.'));
+    'You can also run a single mp (e.g., <code>3a-0-basic</code>) by typing <pre>python grader.py 3a-0-basic</pre>',
+    'We strongly encourage you to read and understand the mp cases, create your own mp cases, and not just blindly run <code>grader.py</code>.'));
 
   header.append('<hr>');
 

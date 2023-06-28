@@ -5,11 +5,11 @@ Usage (see grader.py):
     # create a grader
     grader = Grader("Name of assignment")
 
-    # add a basic test
-    grader.addBasicPart(number, grade_func, max_points, max_seconds, description="a basic test")
+    # add a basic mp
+    grader.addBasicPart(number, grade_func, max_points, max_seconds, description="a basic mp")
 
-    # add a hidden test
-    grader.addHiddenPart(number, grade_func, max_points, max_seconds, description="a hidden test")
+    # add a hidden mp
+    grader.addHiddenPart(number, grade_func, max_points, max_seconds, description="a hidden mp")
 
     # add a manual grading part
     grader.addManualPart(number, grade_func, max_points, description="written problem")
@@ -160,7 +160,7 @@ class Grader:
         if args is None:
             args = sys.argv
         self.parts = []  # Parts (to be added)
-        self.useSolution = False  # Set to true if we are actually evaluating the hidden test cases
+        self.useSolution = False  # Set to true if we are actually evaluating the hidden mp cases
 
         parser = argparse.ArgumentParser()
         parser.add_argument('--js', action='store_true', help='Write JS file with information about this assignment')
@@ -188,14 +188,14 @@ class Grader:
 
     def add_basic_part(self, number, grade_func, max_points=1, max_seconds=default_max_seconds, extra_credit=False,
                        description=""):
-        """Add a basic test case. The test will be visible to students."""
+        """Add a basic mp case. The mp will be visible to students."""
         self.assert_new_number(number)
         part = Part(number, grade_func, max_points, max_seconds, extra_credit, description, basic=True)
         self.parts.append(part)
 
     def add_hidden_part(self, number, grade_func, max_points=1, max_seconds=default_max_seconds, extra_credit=False,
                         description=""):
-        """Add a hidden test case. The output should NOT be visible to students
+        """Add a hidden mp case. The output should NOT be visible to students
         and so should be inside a BEGIN_HIDE block."""
         self.assert_new_number(number)
         part = Part(number, grade_func, max_points, max_seconds, extra_credit, description, basic=False)
@@ -254,7 +254,7 @@ class Grader:
         end_time = datetime.datetime.now()
         part.seconds = (end_time - start_time).seconds
         if part.is_hidden() and not self.useSolution:
-            display_points = '???/%s points (hidden test ungraded)' % part.max_points
+            display_points = '???/%s points (hidden mp ungraded)' % part.max_points
         else:
             display_points = '%s/%s points' % (part.points, part.max_points)
         print('----- END PART %s [took %s (max allowed %s seconds), %s]' % (
@@ -298,7 +298,7 @@ class Grader:
             max_extra_credit = sum(part.max_points for part in active_parts if part.extra_credit)
 
             if not self.useSolution:
-                print('Note that the hidden test cases do not check for correctness.'
+                print('Note that the hidden mp cases do not check for correctness.'
                       '\nThey are provided for you to verify that the functions '
                       'do not crash and run within the time limit.'
                       '\nPoints for these parts not assigned by the grader (indicated by "--").')

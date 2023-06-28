@@ -135,9 +135,9 @@ grader.add_manual_part('1a', 5, description='Recurrence for multi-agent minimiax
 
 # 1b
 grader.add_basic_part('1b-0-basic', lambda : test0('minimax'), 4, max_seconds=max_seconds, description='Tests minimax for timeout on smallClassic.')
-grader.add_basic_part('1b-1-basic', lambda : test1('minimax', True), 0, max_seconds=max_seconds, description='Tests minimax for timeout on hidden test 1.')
-grader.add_basic_part('1b-2-basic', lambda : test2('minimax', True), 0, max_seconds=max_seconds, description='Tests minimax for timeout on hidden test 2.')
-grader.add_basic_part('1b-3-basic', lambda : test3('minimax', True), 0, max_seconds=max_seconds, description='Tests minimax for timeout on hidden test 3.')
+grader.add_basic_part('1b-1-basic', lambda : test1('minimax', True), 0, max_seconds=max_seconds, description='Tests minimax for timeout on hidden mp 1.')
+grader.add_basic_part('1b-2-basic', lambda : test2('minimax', True), 0, max_seconds=max_seconds, description='Tests minimax for timeout on hidden mp 2.')
+grader.add_basic_part('1b-3-basic', lambda : test3('minimax', True), 0, max_seconds=max_seconds, description='Tests minimax for timeout on hidden mp 3.')
 
 grader.add_hidden_part('1b-1-hidden', lambda : test1('minimax'), 2, max_seconds=max_seconds, description='Tests minimax for off by one bug on smallClassic.')
 grader.add_hidden_part('1b-2-hidden', lambda : test2('minimax'), 2, max_seconds=max_seconds, description='Tests minimax for search depth bug on smallClassic.')
@@ -145,9 +145,9 @@ grader.add_hidden_part('1b-3-hidden', lambda : test3('minimax'), 2, max_seconds=
 
 # 2a
 grader.add_basic_part('2a-0-basic', lambda : test0('alphabeta'), 4, max_seconds=max_seconds, description='Tests alphabeta for timeout on smallClassic.')
-grader.add_basic_part('2a-1-basic', lambda : test1('alphabeta', True), 0, max_seconds=max_seconds, description='Tests alphabeta for timeout on hidden test 1.')
-grader.add_basic_part('2a-2-basic', lambda : test2('alphabeta', True), 0, max_seconds=max_seconds, description='Tests alphabeta for timeout on hidden test 2.')
-grader.add_basic_part('2a-3-basic', lambda : test3('alphabeta', True), 0, max_seconds=max_seconds, description='Tests alphabeta for timeout on hidden test 3.')
+grader.add_basic_part('2a-1-basic', lambda : test1('alphabeta', True), 0, max_seconds=max_seconds, description='Tests alphabeta for timeout on hidden mp 1.')
+grader.add_basic_part('2a-2-basic', lambda : test2('alphabeta', True), 0, max_seconds=max_seconds, description='Tests alphabeta for timeout on hidden mp 2.')
+grader.add_basic_part('2a-3-basic', lambda : test3('alphabeta', True), 0, max_seconds=max_seconds, description='Tests alphabeta for timeout on hidden mp 3.')
 
 grader.add_hidden_part('2a-1-hidden', lambda : test1('alphabeta'), 2, max_seconds=max_seconds, description='Tests alphabeta for off by one bug on smallClassic.')
 grader.add_hidden_part('2a-2-hidden', lambda : test2('alphabeta'), 2, max_seconds=max_seconds, description='Tests alphabeta for search depth bug on smallClassic.')
@@ -157,9 +157,9 @@ grader.add_manual_part('3a', 5, description='Recurrence for multi-agent expectim
 
 # 3b
 grader.add_basic_part('3b-0-basic', lambda : test0('expectimax'), 4, max_seconds=max_seconds, description='Tests expectimax for timeout on smallClassic.')
-grader.add_basic_part('3b-1-basic', lambda : test1('expectimax', True), 0, max_seconds=max_seconds, description='Tests expectimax for timeout on hidden test 1.')
-grader.add_basic_part('3b-2-basic', lambda : test2('expectimax', True), 0, max_seconds=max_seconds, description='Tests expectimax for timeout on hidden test 2.')
-grader.add_basic_part('3b-3-basic', lambda : test3('expectimax', True), 0, max_seconds=max_seconds, description='Tests expectimax for timeout on hidden test 3.')
+grader.add_basic_part('3b-1-basic', lambda : test1('expectimax', True), 0, max_seconds=max_seconds, description='Tests expectimax for timeout on hidden mp 1.')
+grader.add_basic_part('3b-2-basic', lambda : test2('expectimax', True), 0, max_seconds=max_seconds, description='Tests expectimax for timeout on hidden mp 2.')
+grader.add_basic_part('3b-3-basic', lambda : test3('expectimax', True), 0, max_seconds=max_seconds, description='Tests expectimax for timeout on hidden mp 3.')
 
 grader.add_hidden_part('3b-1-hidden', lambda : test1('expectimax'), 2, max_seconds=max_seconds, description='Tests expectimax for off by one bug on smallClassic.')
 grader.add_hidden_part('3b-2-hidden', lambda : test2('expectimax'), 2, max_seconds=max_seconds, description='Tests expectimax for search depth bug on smallClassic.')

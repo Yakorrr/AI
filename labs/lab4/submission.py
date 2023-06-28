@@ -212,7 +212,56 @@ class AlphaBetaAgent(MultiAgentSearchAgent):
         """
 
         # BEGIN_YOUR_CODE (our solution is 36 lines of code, but don't worry if you deviate from this)
-        raise Exception("Not implemented yet")
+        def maxValue(state: GameState, agentIndex: int, depth: int, alpha: float, beta: float) -> float:
+            legalActions = state.getLegalActions(agentIndex)
+
+            if not legalActions or depth == self.depth or state.isWin() or state.isLose():
+                return self.evaluationFunction(state)
+
+            value = float('-inf')
+            for action in legalActions:
+                successor = state.generateSuccessor(agentIndex, action)
+                value = max(value, minValue(successor, agentIndex + 1, depth, alpha, beta))
+                if value > beta:
+                    return value
+                alpha = max(alpha, value)
+
+            return value
+
+        def minValue(state: GameState, agentIndex: int, depth: int, alpha: float, beta: float) -> float:
+            legalActions = state.getLegalActions(agentIndex)
+
+            if not legalActions or state.isWin() or state.isLose():
+                return self.evaluationFunction(state)
+
+            value = float('inf')
+            for action in legalActions:
+                successor = state.generateSuccessor(agentIndex, action)
+                if agentIndex == state.getNumAgents() - 1:
+                    value = min(value, maxValue(successor, 0, depth + 1, alpha, beta))
+                else:
+                    value = min(value, minValue(successor, agentIndex + 1, depth, alpha, beta))
+                if value < alpha:
+                    return value
+                beta = min(beta, value)
+
+            return value
+
+        legalActions = gameState.getLegalActions(0)
+        bestAction = None
+        bestValue = float('-inf')
+        alpha = float('-inf')
+        beta = float('inf')
+
+        for action in legalActions:
+            successor = gameState.generateSuccessor(0, action)
+            value = minValue(successor, 1, 1, alpha, beta)
+            if value > bestValue:
+                bestValue = value
+                bestAction = action
+            alpha = max(alpha, bestValue)
+
+        return bestAction
         # END_YOUR_CODE
 
 
@@ -233,7 +282,64 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         """
 
         # BEGIN_YOUR_CODE (our solution is 20 lines of code, but don't worry if you deviate from this)
-        raise Exception("Not implemented yet")
+        def expHelper(gameState, deepness, agent):
+            if agent >= gameState.getNumAgents():
+                agent = 0
+                deepness += 1
+
+            if deepness == self.depth or gameState.isLose() or gameState.isWin():
+                return self.evaluationFunction(gameState)
+            elif agent == 0:
+                return maxFinder(gameState, deepness, agent)
+            else:
+                return expFinder(gameState, deepness, agent)
+
+        def maxFinder(gameState, deepness, agent):
+            output = ['move', -float('inf')]
+            pacmanActions = gameState.getLegalActions(agent)
+
+            if not pacmanActions:
+                return self.evaluationFunction(gameState)
+
+            for action in pacmanActions:
+                currentState = gameState.generateSuccessor(agent, action)
+                currentValue = expHelper(currentState, deepness, agent + 1)
+
+                if type(currentValue) is list:
+                    testValue = currentValue[1]
+                else:
+                    testValue = currentValue
+
+                if testValue > output[1]: output = [action, testValue]
+
+            return output
+
+        def expFinder(gameState, deepness, agent):
+            output = ['move', 0]
+            ghostActions = gameState.getLegalActions(agent)
+
+            if not ghostActions:
+                return self.evaluationFunction(gameState)
+
+            probability = 1.0 / len(ghostActions)
+
+            for action in ghostActions:
+                currentState = gameState.generateSuccessor(agent, action)
+                currentValue = expHelper(currentState, deepness, agent + 1)
+
+                if type(currentValue) is list:
+                    value = currentValue[1]
+                else:
+                    value = currentValue
+
+                output[0] = action
+                output[1] += value * probability
+
+            return output
+
+        outputList = expHelper(gameState, 0, 0)
+        return outputList[0]
+
         # END_YOUR_CODE
 
 
