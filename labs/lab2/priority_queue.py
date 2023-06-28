@@ -6,16 +6,16 @@ class PriorityQueue:
         self._items = []
 
         if items:
-            for item, priority in items:
+            for priority, item in items:
                 self.push(item, priority)
 
     def push(self, item, priority):
-        entry = (item, priority)
+        entry = (priority, item)
         heapq.heappush(self._items, entry)
 
     def pop(self):
         try:
-            item, _ = heapq.heappop(self._items)
+            _, item = heapq.heappop(self._items)
             return item
         except IndexError:
             print('ERROR! Trying to pop an element from an empty priority queue.')

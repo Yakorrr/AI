@@ -1,5 +1,6 @@
 import random
 from time import time_ns
+from tabulate import tabulate
 from collections import namedtuple
 
 import matplotlib.pyplot as plt
@@ -72,7 +73,7 @@ class NQueensState:
 
         return neighbors
 
-    def plot(self, fc='darkgoldenrod', line_color='seagreen', line_alpha=0.8):
+    def plot(self, fc='darkslateblue', line_color='red', line_alpha=0.5):
         N = self.N
         figsize = plt.rcParams['figure.figsize']
         figure = plt.figure(figsize=(6, 6))
@@ -189,6 +190,57 @@ class NQueensState:
 
         return None
 
+    def backtracking(self, time_limit, memory_limit):
+        start_time = time_ns()
+        process = psutil.Process()
+
+        result, generated_nodes, max_stored = self.backtracking_search(0, start_time, process,
+                                                                       time_limit, memory_limit, 0, 0)
+
+        current_time = (time_ns() - start_time) / 1e9
+        current_memory = process.memory_info().rss / (1024 ** 2)
+
+        return result, current_time, current_memory, \
+            generated_nodes, max_stored
+
+    def backtracking_search(self, col, start_time, process, time_limit, memory_limit,
+                            generated_nodes, max_stored):
+        current_time = (time_ns() - start_time) / 1e9
+        current_memory = process.memory_info().rss / (1024 ** 2)
+
+        if current_time >= time_limit or current_memory >= memory_limit:
+            return None, generated_nodes, max_stored
+
+        if col == self.N:
+            return tuple(self.queens), generated_nodes, max_stored
+
+        for row in range(self.N):
+            if self.is_safe_move(row, col):
+                self.move_queen(row, col)
+
+                solution, generated_nodes, max_stored = \
+                    self.backtracking_search(col + 1, start_time, process, time_limit, memory_limit,
+                                             generated_nodes + 1, max_stored)
+
+                if solution is not None:
+                    return tuple(self.queens), generated_nodes, max_stored
+
+                self.move_queen(self.queens[col] - 1, col)  # Undo the move
+
+            max_stored = max(generated_nodes, max_stored)
+
+        return None, generated_nodes, max_stored
+
+    def is_safe_move(self, row, col):
+        for i in range(col):
+            if self.queens[i] == row + 1 or abs(self.queens[i] - (row + 1)) == abs(i - col):
+                return False
+
+        return True
+
+    def move_queen(self, row, col):
+        self.queens[col] = row + 1
+
     def checking(self, queens, i, j):
         position_i = queens[i]
         position_j = queens[j]
@@ -257,7 +309,7 @@ class NQueensState:
             generated_nodes += max_stored
 
             if self.conflicts(queens=node.state.queens) == 0:
-                return node.state.queens, current_time, current_memory, \
+                return tuple(node.state.queens), current_time, current_memory, \
                     generated_nodes, max_stored
 
         return None
@@ -326,58 +378,38 @@ class NQueensState:
         return result, current_time, current_memory, generated_nodes, max_stored
 
     @staticmethod
-    def print_results(data, column=''):
-        print("| {:<10} | {:<12} | {:<10} | {:<12} | {:<11} | {:<12} | {:<10} | {:<10} |"
-        .format(
-            'Iteration',
-            'Initial state',
-            'Algorithm',
-            'Goal state',
-            'Time',
-            'Memory',
-            'Generated',
-            'Max. stored'
-        ))
+    def print_results(data):
+        rows = []
 
-        total_time, avg_time, \
-            total_generated, avg_generated = 0, 0, 0, 0
-        valid_experiments = 0
+        for experiment in data:
+            temp_row = []
 
-        for i in data:
-            temp_list = []
+            for elem in experiment:
+                temp_row.extend(elem) if isinstance(elem, tuple) and any(
+                    isinstance(el, tuple) for el in elem) else temp_row.extend(
+                    ['-----' for _ in range(len(elem))]) if isinstance(
+                    elem, tuple) and None in elem else temp_row.append(
+                    elem) if isinstance(elem, tuple) else temp_row.append(elem)
 
-            for j in i:
-                temp_list.extend(j) if isinstance(j, tuple) and j is not None \
-                    else temp_list.append(j) if j is not None else temp_list.extend(['-----' for _ in range(5)])
+            temp_row = ["".join(str(number) for number in elem)
+                        if isinstance(elem, tuple) else elem for elem in temp_row]
 
-            temp_list = ["".join(str(number) for number in elem)
-                         if isinstance(elem, list) else elem for elem in temp_list]
+            rows.append((data.index(experiment) + 1, *temp_row))
 
-            valid_experiments += 1 if i[len(i) - 1] is not None else 0
+        print(tabulate(rows, headers=['Iteration', 'Initial state', 'Algorithm', 'Goal state',
+                                      'Time', 'Memory', 'Generated', 'Max. stored'],
+                       tablefmt='rounded_grid', stralign='center', numalign='center'))
 
-            try:
-                total_time += temp_list[3] if type(temp_list[3] != str) else 0
-                total_generated += temp_list[5] if type(temp_list[5] != str) else 0
-            except TypeError:
-                pass
-
-            print("| {:<10} | {:<13} | {:<10} | {:<12} | {:<11} | {:<12} | {:<10} | {:<11} |"
-                  .format(data.index(i) + 1, *temp_list))
-
-        avg_time = total_time / len(data)
-        avg_generated = total_generated / len(data)
-
-        print("\nPath found times:", valid_experiments)
+        total_time = sum([float(i[4]) for i in rows])
         print("Total time:", total_time)
-        print("Average time:", avg_time)
-        print("Total generated:", total_generated)
-        # print("Average generated:", avg_generated)
+        print("Average time:", total_time / len(rows))
+        print("Total generated:", sum([int(i[6]) for i in rows]))
 
 
-if __name__ == '__main__':
+def experiment_series(number):
     experiments_result = []
 
-    for i in range(50):
+    for i in range(number):
         state = NQueensState(8)
         # print("Initial state:", state.queens)
         # print("Conflicts:", state.conflicts())
@@ -392,16 +424,22 @@ if __name__ == '__main__':
         # print("Random depth:", random_depth)
         # experiments_result.append((state.queens, 'BFS', state.BFS(state.queens, 10, 1024)))
 
-        # heuristic = state.heuristic()
-        # print("Heuristic:", heuristic)
-        # experiments_result.append((state.queens, 'A*', state.astar(state, state.heuristic, 10, 1024)))
+        # experiments_result.append((tuple(state.queens), 'Backtracking', state.backtracking(10, 1024)))
 
         heuristic = state.heuristic()
         print("Heuristic:", heuristic)
-        experiments_result.append((state.queens, 'RBFS', state.rbfs(state, state.heuristic, 10, 1024)))
+        experiments_result.append((tuple(state.queens), 'A*', state.astar(state, state.heuristic, 10, 1024)))
+
+        # heuristic = state.heuristic()
+        # print("Heuristic:", heuristic)
+        # experiments_result.append((state.queens, 'RBFS', state.rbfs(state, state.heuristic, 10, 1024)))
 
         state.plot()
 
-    # NQueensState.print_results(experiments_result, column='Depth')
-    # NQueensState.print_results(experiments_result, column='Heuristic')
-    NQueensState.print_results(experiments_result, column='Conflicts')
+    NQueensState.print_results(experiments_result)
+
+
+if __name__ == '__main__':
+    experiment_numbers = int(input("Enter number of experiments: "))
+
+    experiment_series(experiment_numbers)

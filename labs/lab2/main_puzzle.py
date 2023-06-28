@@ -1,16 +1,15 @@
 import math
 import random
 from collections import namedtuple
-from time import time_ns
 from copy import deepcopy
+from time import time_ns
 
 import matplotlib.pyplot as plt
 import psutil
 from tabulate import tabulate
 
-from stack import Stack
-from queue import Queue
 from priority_queue import PriorityQueue
+from queue import Queue
 
 
 class NPuzzleState:
