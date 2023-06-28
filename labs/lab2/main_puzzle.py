@@ -2,16 +2,18 @@ import math
 import random
 from collections import namedtuple
 from time import time_ns
+from copy import deepcopy
 
 import matplotlib.pyplot as plt
 import psutil
 from tabulate import tabulate
 
+from stack import Stack
 from queue import Queue
+from priority_queue import PriorityQueue
 
 
 class NPuzzleState:
-
     def __init__(self, N, tiles=None):
         self.N = N
         self.tiles = tuple(tiles[:] if tiles else self.random_state())
@@ -26,6 +28,13 @@ class NPuzzleState:
         if not isinstance(other, NPuzzleState): return False
 
         return self.tiles == other.tiles
+
+    def __lt__(self, other):
+        if self is other: return True
+        if other is None: return False
+        if not isinstance(other, NPuzzleState): return False
+
+        return self.misplaces_tiles(self) > other.misplaces_tiles(other)
 
     def __str__(self):
         result = ''
@@ -47,34 +56,36 @@ class NPuzzleState:
 
         return puzzle
 
-    def successors(self):
+    def successors(self, tiles=None):
+        if tiles is None: tiles = deepcopy(self.tiles)
+
         blank_idx = self.tiles.index(0)
         successors = []
 
         # left
         if blank_idx % self.grid_size > 0:
-            tiles = list(self.tiles)
+            tiles = list(tiles)
             tiles[blank_idx], tiles[blank_idx - 1] = tiles[blank_idx - 1], tiles[blank_idx]
             successor = NPuzzleState(self.N, tiles=tiles)
             successors.append((successor, 'Left', 1))
 
         # up
         if blank_idx >= self.grid_size:
-            tiles = list(self.tiles)
+            tiles = list(tiles)
             tiles[blank_idx], tiles[blank_idx - self.grid_size] = tiles[blank_idx - self.grid_size], tiles[blank_idx]
             successor = NPuzzleState(self.N, tiles=tiles)
             successors.append((successor, 'Up', 1))
 
         # right
         if blank_idx % self.grid_size < self.grid_size - 1:
-            tiles = list(self.tiles)
+            tiles = list(tiles)
             tiles[blank_idx], tiles[blank_idx + 1] = tiles[blank_idx + 1], tiles[blank_idx]
             successor = NPuzzleState(self.N, tiles=tiles)
             successors.append((successor, 'Right', 1))
 
         # down
-        if blank_idx + self.grid_size < len(self.tiles):
-            tiles = list(self.tiles)
+        if blank_idx + self.grid_size < len(tiles):
+            tiles = list(tiles)
             tiles[blank_idx], tiles[blank_idx + self.grid_size] = tiles[blank_idx + self.grid_size], tiles[blank_idx]
             successor = NPuzzleState(self.N, tiles=tiles)
             successors.append((successor, 'Down', 1))
@@ -112,6 +123,10 @@ class NPuzzleState:
 
         plt.show()
 
+    def misplaces_tiles(self, state):
+        return sum([state.tiles.index(tile) != goal_state.tiles.index(tile)
+                    for tile in range(1, self.N + 1)])
+
     @staticmethod
     def manhattan_distance(tile, state1, state2):
         i = state1.tiles.index(tile)
@@ -123,6 +138,10 @@ class NPuzzleState:
         row_j, col_j = j // gs, j % gs
 
         return abs(row_i - row_j) + abs(col_i - col_j)
+
+    def heuristic(self, state, goal):
+        return sum([self.manhattan_distance(tile, state, goal)
+                    for tile in range(1, self.N + 1)])
 
     def BFS(self, start_state, goal_state, time_limit, memory_limit):
         Node = namedtuple('Node', 'state parent action cost')
@@ -156,7 +175,7 @@ class NPuzzleState:
                     explored.add(successor)
                     frontier.push(Node(successor, node, action, node.cost + step_cost))
 
-            self.tiles = tuple(node.state.tiles[:])
+            self.tiles = deepcopy(node.state.tiles)
 
             if node.state == goal_state:
                 return node.state.tiles, current_time, current_memory, \
@@ -164,6 +183,116 @@ class NPuzzleState:
 
         return None, current_time, current_memory, \
             num_generated, max_nodes
+
+    def astar(self, initial_state, goal_state, heuristic, time_limit, memory_limit):
+        Node = namedtuple('Node', 'state parent action cost')
+
+        start_time = time_ns()
+        process = psutil.Process()
+        frontier = PriorityQueue()
+        explored = dict()
+
+        node = Node(initial_state, None, None, 0)
+        frontier.push(node, heuristic(initial_state, goal_state))
+        explored[initial_state] = node
+        current_time, current_memory = 0, 0
+        max_stored, generated_nodes, path_cost = 0, 0, 0
+
+        while not frontier.is_empty():
+            node = frontier.pop()
+            # print("Node:", node)
+            current_time = (time_ns() - start_time) / 1e9
+            current_memory = process.memory_info().rss / (1024 ** 2)
+            max_stored = max(max_stored, len(explored))
+
+            if current_time >= time_limit or current_memory >= memory_limit:
+                return None, current_time, current_memory, \
+                    generated_nodes, max_stored
+
+            if node.state == goal_state:
+                self.tiles = deepcopy(node.state.tiles)
+
+                return node.state.tiles, current_time, current_memory, \
+                    generated_nodes, max_stored
+
+            for successor, action, step_cost in node.state.successors(tiles=node.state.tiles):
+                generated_nodes += 1
+                path_cost = node.cost + step_cost
+                # print("Path cost:", path_cost)
+
+                if successor not in explored:
+                    child_node = Node(successor, node, action, path_cost)
+                    explored[successor] = child_node
+                    frontier.push(child_node, path_cost + heuristic(successor, goal_state))
+
+            # self.tiles = deepcopy(node.state.tiles)
+            # generated_nodes += max_stored
+
+        return goal_state.tiles, current_time, current_memory, \
+            generated_nodes, max_stored
+
+    def recursive_rbfs(self, node, goal_state, f_limit, path_cost, Node, heuristic, start_time, process,
+                       generated_nodes, max_stored, time_limit, memory_limit):
+        successors = []
+
+        current_time = (time_ns() - start_time) / 1e9
+        current_memory = process.memory_info().rss / (1024 ** 2)
+
+        if current_time >= time_limit or current_memory >= memory_limit:
+            return None, current_time, current_memory, \
+                generated_nodes, max_stored
+
+        if node.state == goal_state:
+            return node.state.tiles, current_time, current_memory, \
+                generated_nodes, max_stored
+
+        for successor, action, step_cost in node.state.successors():
+            generated_nodes += 1
+
+            child_node = Node(successor, node, action, node.cost + path_cost)
+            successors.append((child_node, max(path_cost + heuristic(successor, goal_state), f_limit)))
+
+        if not successors:
+            return None, current_time, current_memory, \
+                generated_nodes, max_stored
+
+        while len(successors):
+            successors.sort(key=lambda x: x[1])
+            best_node, best_f = successors[0]
+            self.tiles = best_node.state.tiles[:]
+
+            if best_f > f_limit:
+                return None, current_time, current_memory, \
+                    generated_nodes, max_stored
+
+            alternative_f = successors[1][1]
+            result, current_time, current_memory, generated_nodes, max_stored = \
+                self.recursive_rbfs(best_node, goal_state, min(f_limit, alternative_f), path_cost + 1,
+                                    Node, heuristic, start_time, process, generated_nodes, max_stored,
+                                    time_limit, memory_limit)
+
+            max_stored = max(max_stored, len(successors))
+
+            if result is not None:
+                return result, current_time, current_memory, \
+                    generated_nodes, max_stored
+
+        return None, current_time, current_memory, \
+            generated_nodes, max_stored
+
+    def RBFS(self, start_state, goal_state, heuristic, time_limit, memory_limit):
+        Node = namedtuple('Node', 'state parent action cost')
+
+        start_time = time_ns()
+        process = psutil.Process()
+
+        node = Node(start_state, None, None, 0)
+
+        result, current_time, current_memory, generated_nodes, max_stored = \
+            self.recursive_rbfs(node, goal_state, self.heuristic(start_state, goal_state),
+                                0, Node, heuristic, start_time, process, 0, 0, time_limit, memory_limit)
+
+        return result, current_time, current_memory, generated_nodes, max_stored
 
     @staticmethod
     def print_results(data):
@@ -189,14 +318,15 @@ class NPuzzleState:
                        tablefmt='rounded_grid', stralign='center', numalign='center'))
 
 
-def experiment_series(number):
-    goal_state_tiles = [
-        1, 2, 3,
-        4, 5, 6,
-        7, 8, 0]
+goal_state_tiles = [
+    1, 2, 3,
+    4, 5, 6,
+    7, 8, 0]
+goal_state = NPuzzleState(8, tiles=goal_state_tiles)
 
+
+def experiment_series(number):
     experiment_result = []
-    goal_state = NPuzzleState(8, tiles=goal_state_tiles)
 
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
     print(" GOAL STATE: ")
@@ -211,7 +341,16 @@ def experiment_series(number):
         print(state)
         print("=======================================")
 
-        experiment_result.append((state.tiles, "BFS", state.BFS(state, goal_state, 10, 1024)))
+        # experiment_result.append((state.tiles, "BFS", state.BFS(state, goal_state, 10, 1024)))
+
+        # random_depth = random.randint(2, 20)
+        # print("Random depth:", random_depth)
+        # experiment_result.append((state.tiles, "RBFS", state.LDFS(state, goal_state, random_depth, 10, 1024)))
+
+        # heuristic = state.heuristic(state, goal_state)
+        # print("Heuristic:", heuristic)
+        experiment_result.append((state.tiles, "RBFS", state.astar(
+            state, goal_state, state.heuristic, float('inf'), 1024)))
 
         state.plot(title="Goal state")
 
